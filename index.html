@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Recovery">
+<meta name="theme-color" content="#2F7F86">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
 <title>Recovery tracker (this device only)</title>
 <style>
 :root{
@@ -235,6 +241,21 @@ input[type=checkbox]{width:20px;height:20px;min-height:0;accent-color:var(--tide
 .mlist{list-style:none;margin:0;padding:0;font-size:14px}
 .mlist li{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
 .mlist li b{font-weight:500;color:var(--mute);font-size:13px;white-space:nowrap}
+
+.sheet .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0}
+.sheet table.labt{table-layout:auto}
+.sheet table.labt th,.sheet table.labt td{padding:4px 3px;font-size:10.5px;text-align:right;line-height:1.25}
+.sheet table.labt th:first-child,.sheet table.labt td:first-child{text-align:left;min-width:58px;padding-left:0}
+.sheet table.labt thead th{font-weight:600;vertical-align:bottom}
+.sheet table.labt td small{display:block;margin:0;font-size:9.5px}
+.sheet .medl{list-style:none;margin:0;padding:0}
+.sheet .medl li{padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.45}
+.sheet .medl li:last-child{border-bottom:0}
+.sheet .medl small{color:var(--mute);font-size:11.5px;margin-left:4px}
+.sheet .medl .mstat{display:flex;flex-wrap:wrap;gap:1px 14px;color:var(--mute);font-size:12px;margin-top:2px}
+.sheet .medl .mnote{font-size:12px;color:var(--mute);margin-top:2px}
+@media (max-width:520px){.sheet{padding:16px 12px}.sheet th,.sheet td{padding:4px 5px;font-size:11.5px}.sheet table.labt th,.sheet table.labt td{padding:4px 3px;font-size:10.5px}}
+@media print{.sheet .tablewrap{overflow:visible}.sheet table.labt th,.sheet table.labt td{font-size:9pt;padding:4px 5px}.sheet .medl li{break-inside:avoid}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -413,22 +434,25 @@ function lineChart(o){
   }
   const X=t=>L+(t-x0)/(x1-x0)*(W-L-R),Y=v=>T+(1-(v-y0)/(y1-y0))*(H-T-B);
   let svg='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label)+'">';
-  if(o.band){const a=Math.max(o.band.from,y0),b=Math.min(o.band.to,y1);if(b>a)svg+='<rect x="'+L+'" y="'+Y(b)+'" width="'+(W-L-R)+'" height="'+(Y(a)-Y(b))+'" fill="var(--band)"/><text x="'+(L+4)+'" y="'+(Y(b)+11)+'">'+esc(o.band.label)+'</text>';}
+  if(o.band){const a=Math.max(o.band.from,y0),b=Math.min(o.band.to,y1);if(b>a)svg+='<rect x="'+L+'" y="'+Y(b)+'" width="'+(W-L-R)+'" height="'+(Y(a)-Y(b))+'" style="fill:var(--band)"/><text x="'+(L+4)+'" y="'+(Y(b)+11)+'">'+esc(o.band.label)+'</text>';}
   niceTicks(y0,y1,4).forEach(t=>{if(t<y0-1e-9||t>y1+1e-9)return;svg+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(t)+'" y2="'+Y(t)+'"/><text x="'+(L-6)+'" y="'+(Y(t)+3)+'" text-anchor="end">'+(+t.toFixed(2))+'</text>';});
-  if(o.guide&&o.guide.v>=y0&&o.guide.v<=y1)svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(o.guide.v)+'" y2="'+Y(o.guide.v)+'" stroke="var(--saffron)" stroke-width="1.2" stroke-dasharray="4 4"/><text x="'+(W-R)+'" y="'+(Y(o.guide.v)-4)+'" text-anchor="end">'+esc(o.guide.label)+'</text>';
+  if(o.guide&&o.guide.v>=y0&&o.guide.v<=y1)svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(o.guide.v)+'" y2="'+Y(o.guide.v)+'" style="stroke:var(--saffron)" stroke-width="1.2" stroke-dasharray="4 4"/><text x="'+(W-R)+'" y="'+(Y(o.guide.v)-4)+'" text-anchor="end">'+esc(o.guide.label)+'</text>';
   const dset=Array.from(new Set(all.map(p=>p.d))).sort();
-  const nl=Math.min(4,dset.length);
-  for(let i=0;i<nl;i++){
-    const d=dset[nl===1?0:Math.round(i*(dset.length-1)/(nl-1))];
-    const anchor=i===0&&nl>1?'start':i===nl-1&&nl>1?'end':'middle';
-    svg+='<text x="'+X(parseD(d).getTime())+'" y="'+(H-8)+'" text-anchor="'+anchor+'">'+esc(fmtShort(d))+'</text>';
-  }
+  const nl=Math.min(5,dset.length),cand=[];
+  for(let i=0;i<nl;i++)cand.push(dset[nl===1?0:Math.round(i*(dset.length-1)/(nl-1))]);
+  const uq=Array.from(new Set(cand)),px=uq.map(d=>X(parseD(d).getTime())),keep=[];
+  uq.forEach((d,i)=>{if(!keep.length||px[i]-keep[keep.length-1].x>=52)keep.push({d:d,x:px[i]});});
+  if(uq.length>1&&keep[keep.length-1].d!==uq[uq.length-1]){const lx=px[px.length-1];while(keep.length&&lx-keep[keep.length-1].x<52)keep.pop();keep.push({d:uq[uq.length-1],x:lx});}
+  keep.forEach((k,i)=>{
+    const anchor=keep.length>1?(i===0?'start':i===keep.length-1?'end':'middle'):'middle';
+    svg+='<text x="'+k.x.toFixed(1)+'" y="'+(H-8)+'" text-anchor="'+anchor+'">'+esc(fmtShort(k.d))+'</text>';
+  });
   o.series.forEach(s=>{
     const pts=s.pts.slice().sort((a,b)=>a.d<b.d?-1:1);
-    if(pts.length>1)svg+='<polyline fill="none" stroke="'+s.color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="'+pts.map(p=>X(parseD(p.d).getTime()).toFixed(1)+','+Y(p.v).toFixed(1)).join(' ')+'"/>';
+    if(pts.length>1)svg+='<polyline fill="none" style="stroke:'+s.color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="'+pts.map(p=>X(parseD(p.d).getTime()).toFixed(1)+','+Y(p.v).toFixed(1)).join(' ')+'"/>';
     pts.forEach(p=>{
       const tip=fmtMon(p.d)+' · '+s.name+' '+(p.open?'<':'')+(+p.v.toFixed(2))+(o.unit?(' '+o.unit):'');
-      svg+='<circle class="pt" data-tip="'+esc(tip)+'" cx="'+X(parseD(p.d).getTime()).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="'+(p.open?4.2:3.6)+'" fill="'+(p.open?'var(--surface)':s.color)+'" stroke="'+s.color+'" stroke-width="2"><title>'+esc(tip)+'</title></circle>';
+      svg+='<circle class="pt" data-tip="'+esc(tip)+'" cx="'+X(parseD(p.d).getTime()).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="'+(p.open?4.2:3.6)+'" style="fill:'+(p.open?'var(--surface)':s.color)+';stroke:'+s.color+'" stroke-width="2"><title>'+esc(tip)+'</title></circle>';
     });
   });
   svg+='</svg>';
@@ -1582,13 +1606,14 @@ function makeSummary(){
     return parts.join(' · ');
   }
   function dailyWindow(){const cut=addDays(today(),-days);return Object.keys(S.daily).sort().filter(d=>d>=cut).map(d=>Object.assign({},S.daily[d],{date:d}));}
+  const dm=d=>{const x=parseD(d);return esc(x.toLocaleDateString('en-GB',{day:'numeric',month:'short'}))+'<br>'+x.getFullYear();};
   function labCell(L,f){const v=L[f.k];if(v==null)return '—';return (L[f.k+'_lt']?'&lt;':'')+fnum(v)+(f.k==='ft4'&&L.ft4u?' <small>'+esc(L.ft4u)+'</small>':'');}
   function statsTable(D){
     const col=k=>D.map(e=>e[k]).filter(v=>v!=null&&!isNaN(v));
     const row=(label,k,dec)=>{const v=col(k);if(!v.length)return '';return '<tr><td>'+esc(label)+'</td><td>'+avg(v).toFixed(dec)+'</td><td>'+Math.min.apply(null,v).toFixed(dec)+' – '+Math.max.apply(null,v).toFixed(dec)+'</td><td>'+v.length+'</td></tr>';};
     let rows=row('Sleep (hours)','sleep',1)+row('Stress, own rating (1–5, 5 = heavy)','stress',1)+row('Mood, own rating (1–5, 5 = great)','mood',1)+row('Basal body temperature (°C)','bbt',2);
     if(inc.watch)rows+=row('Sleep score (watch)','sleepScore',0)+row('Overnight HRV (ms, watch)','hrv',0)+row('Resting heart rate (bpm, watch)','rhr',0)+row('Average stress (watch, 0–100)','wStress',0)+row('Body Battery, morning (watch)','battery',0)+row('Steps (watch)','steps',0);
-    return rows?'<table><thead><tr><th>Measure</th><th>Average</th><th>Range</th><th>Days logged</th></tr></thead><tbody>'+rows+'</tbody></table>':'<p>No check-ins logged in this period.</p>';
+    return rows?'<div class="tablewrap"><table><thead><tr><th>Measure</th><th>Average</th><th>Range</th><th>Days logged</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<p>No check-ins logged in this period.</p>';
   }
   function medsSection(p){
     const ms=medList();
@@ -1597,10 +1622,11 @@ function makeSummary(){
     ms.sort((a,b)=>rank(a)-rank(b)||((b.start||'')<(a.start||'')?-1:1));
     let h='<section><h2>Medications and supplements</h2>';
     if(ms.length){
-      h+='<table><thead><tr><th>Name</th><th>Dose and schedule</th><th>Started</th><th>Status</th></tr></thead><tbody>'+ms.map(m=>{
+      h+='<ul class="medl">'+ms.map(m=>{
         const status=m.notStarted?'Prescribed, not started':(m.stop&&m.stop<=t?'Stopped '+esc(fmtMon(m.stop))+(m.stopReason?' ('+esc(m.stopReason)+')':''):'Current');
-        return '<tr><td><b>'+esc(m.name)+'</b><br><small>'+esc(m.kind||'')+'</small></td><td>'+esc([m.dose,m.sched==='asneeded'?'as needed or in courses':'every day'].filter(Boolean).join(', '))+(m.notes?'<br><small>'+esc(m.notes)+'</small>':'')+'</td><td>'+(m.start?esc(dApprox(m.start,m.startApprox)):'—')+'</td><td>'+status+'</td></tr>';
-      }).join('')+'</tbody></table>';
+        const sc=m.sched==='asneeded'?'as needed or in courses':'every day',dose=[m.dose,/daily|every day/i.test(m.dose||'')?'':sc].filter(Boolean).join(', ');
+        return '<li><b>'+esc(m.name)+'</b><small>'+esc(m.kind||'')+'</small><div>'+esc(dose)+'</div><div class="mstat"><span>Started: '+(m.start?esc(dApprox(m.start,m.startApprox)):'not recorded')+'</span><span>'+status+'</span></div>'+(m.notes?'<div class="mnote">'+esc(m.notes)+'</div>':'')+'</li>';
+      }).join('')+'</ul>';
       const cut=addDays(today(),-days),adh=ms.filter(m=>m.sched!=='asneeded'&&!m.notStarted).map(m=>{
         let tk=0,lg=0;Object.keys(S.daily).forEach(d=>{if(d>=cut){const v=(S.daily[d].meds||{})[m.id];if(v===1){tk++;lg++;}else if(v===0)lg++;}});
         return lg?esc(m.name)+': taken on '+tk+' of '+lg+' logged days':'';}).filter(Boolean);
@@ -1627,8 +1653,8 @@ function makeSummary(){
     if(lds.length){
       const rows=LAB_FIELDS.filter(f=>shown.some(d=>S.labs[d][f.k]!=null));
       const all=k=>lds.filter(d=>S.labs[d][k]!=null).map(d=>({d:d,v:S.labs[d][k],open:!!S.labs[d][k+'_lt']}));
-      h+='<section><h2>Laboratory results'+(lds.length>8?' (latest 8 panels)':'')+'</h2><table><thead><tr><th>Test</th>'+shown.map(d=>'<th>'+esc(fmtMon(d))+'</th>').join('')+'</tr></thead><tbody>'+
-        rows.map(f=>'<tr><td>'+esc(f.l)+(f.u?' <small>'+esc(f.u)+'</small>':'')+'</td>'+shown.map(d=>'<td>'+labCell(S.labs[d],f)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'+
+      h+='<section><h2>Laboratory results'+(lds.length>8?' (latest 8 panels)':'')+'</h2><div class="tablewrap"><table class="labt"><thead><tr><th>Test</th>'+shown.map(d=>'<th>'+dm(d)+'</th>').join('')+'</tr></thead><tbody>'+
+        rows.map(f=>'<tr><td>'+esc(f.l)+(f.u?'<small>'+esc(f.u)+'</small>':'')+'</td>'+shown.map(d=>'<td>'+labCell(S.labs[d],f)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'+
         '<p class="meta">&lt; means the lab reported the value below its detection limit.</p>'+
         lineChart({label:'FSH and LH over time',series:[{name:'FSH',color:'var(--tide)',pts:all('fsh')},{name:'LH',color:'var(--heather)',pts:all('lh')}],unit:'IU/L',yMin:0,h:150})+
         lineChart({label:'Estradiol over time',series:[{name:'Estradiol',color:'var(--saffron)',pts:all('e2')}],unit:'pmol/L',yMin:0,yMax:400,band:{from:300,to:1800,label:'Typical ovulatory range (300+)'},legend:true,h:150})+'</section>';
@@ -1651,7 +1677,7 @@ function makeSummary(){
     h+=bleedSection();
     if(inc.measures){
       const ms=Object.keys(S.measures).sort().slice(-8);
-      if(ms.length)h+='<section><h2>Body measurements (cm)</h2><table><thead><tr><th>Date</th><th>Waist</th><th>Hip</th><th>Thigh</th><th>Chest</th></tr></thead><tbody>'+ms.map(d=>{const m=S.measures[d];return '<tr><td>'+esc(fmtMon(d))+'</td><td>'+fnum(m.waist)+'</td><td>'+fnum(m.hip)+'</td><td>'+fnum(m.thigh)+'</td><td>'+fnum(m.chest)+'</td></tr>';}).join('')+'</tbody></table></section>';
+      if(ms.length)h+='<section><h2>Body measurements (cm)</h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Waist</th><th>Hip</th><th>Thigh</th><th>Chest</th></tr></thead><tbody>'+ms.map(d=>{const m=S.measures[d];return '<tr><td>'+esc(fmtMon(d))+'</td><td>'+fnum(m.waist)+'</td><td>'+fnum(m.hip)+'</td><td>'+fnum(m.thigh)+'</td><td>'+fnum(m.chest)+'</td></tr>';}).join('')+'</tbody></table></div></section>';
     }
     if(inc.training){
       const cut=addDays(today(),-days),wk=days/7;
